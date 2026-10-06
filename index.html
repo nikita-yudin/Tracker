@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Change Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f5f6f8;--card:#fff;--text:#172033;--muted:#687386;--line:#e5e8ee;
+  --blue:#4263eb;--blue2:#eef2ff;--yellow:#f59f00;--green:#2f9e44;--red:#e03131;
+  --shadow:0 8px 28px rgba(23,32,51,.07);--radius:16px;
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,Arial,sans-serif}
+button,input,select,textarea{font:inherit} button{cursor:pointer}
+.app{min-height:100vh}.topbar{height:68px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 28px;gap:28px;position:sticky;top:0;z-index:20}
+.logo{font-weight:800;letter-spacing:.5px;font-size:17px}.nav{display:flex;gap:5px}.nav button{border:0;background:transparent;padding:9px 13px;border-radius:9px;color:var(--muted)}.nav button.active{background:#f0f2f6;color:var(--text);font-weight:700}
+.add{margin-left:auto;background:var(--text);color:#fff;border:0;border-radius:10px;padding:10px 15px;font-weight:700}
+main{max-width:1400px;margin:auto;padding:28px}.pagehead{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.pagehead h1{margin:0;font-size:28px}.sub{color:var(--muted);margin-top:4px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:22px}.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}.kpi b{font-size:28px;display:block}.kpi span{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}.card h2{font-size:17px;margin:0 0 16px}.attention{display:flex;flex-direction:column;gap:9px}.attention-item{padding:12px 13px;border:1px solid var(--line);border-radius:11px;display:flex;align-items:center;justify-content:space-between;gap:12px}.attention-item .left{min-width:0}.attention-item strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini{font-size:12px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}.idea{background:#f0f1f3;color:#667085}.planned{background:#eef2ff;color:#3b5bdb}.test{background:#fff3bf;color:#a66b00}.analysis{background:#e7f5ff;color:#1971c2}.done{background:#ebfbee;color:#2b8a3e}.failed{background:#fff5f5;color:#c92a2a}.paused{background:#f1f3f5;color:#666}.danger{color:var(--red)}.warning{color:#b87900}.ok{color:var(--green)}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}.controls input,.controls select,.field input,.field select,.field textarea{border:1px solid #d9dde5;border-radius:9px;padding:10px 11px;background:#fff;outline:none}.controls input{min-width:240px}.controls select{min-width:150px}
+.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;background:#fff}.table th,.table td{text-align:left;padding:13px 11px;border-bottom:1px solid var(--line);white-space:nowrap}.table th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}.table tbody tr{cursor:pointer}.table tbody tr:hover{background:#fafbfc}
+.chartbar{display:flex;align-items:end;height:180px;gap:16px;border-bottom:1px solid var(--line);padding:15px 8px 0}.barcol{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:end;gap:7px}.bar{width:70%;max-width:60px;border-radius:7px 7px 0 0;background:#4263eb;min-height:5px}.barlabel{font-size:11px;color:var(--muted)}.barval{font-weight:700;font-size:12px}
+.modal-bg{position:fixed;inset:0;background:rgba(20,27,40,.42);display:none;align-items:center;justify-content:center;padding:25px;z-index:50}.modal-bg.open{display:flex}.modal{background:#fff;border-radius:18px;max-width:1000px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 70px rgba(0,0,0,.2)}.modal-head{padding:20px 23px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:15px}.close{border:0;background:#f1f3f5;border-radius:9px;width:34px;height:34px}.modal-body{padding:23px}.detail-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.detail-head h2{margin:5px 0 4px;font-size:24px}.section{margin-top:23px}.section h3{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 9px}.textbox{background:#f8f9fb;border-radius:10px;padding:12px 14px;white-space:pre-wrap}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric{border:1px solid var(--line);border-radius:11px;padding:13px}.metric b{font-size:18px;display:block;margin-top:4px}.detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.info{border:1px solid var(--line);padding:12px;border-radius:10px}.info span{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.primary,.secondary,.danger-btn{border:0;border-radius:9px;padding:10px 14px;font-weight:700}.primary{background:var(--text);color:#fff}.secondary{background:#eef0f4;color:var(--text)}.danger-btn{background:#fff0f0;color:#c92a2a}
+.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:700;color:#4c566a}.field textarea{min-height:90px;resize:vertical}.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.toast{position:fixed;right:22px;bottom:22px;background:#172033;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:var(--shadow);display:none;z-index:100}.toast.show{display:block}
+@media(max-width:1050px){.kpis{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}.topbar{padding:0 15px}.nav{overflow:auto}.nav button{white-space:nowrap}main{padding:18px}}
+@media(max-width:650px){.kpis{grid-template-columns:repeat(2,1fr)}.formgrid,.detail-grid,.metrics{grid-template-columns:1fr}.topbar{height:auto;min-height:64px;flex-wrap:wrap;padding:12px}.nav{order:3;width:100%}.add{margin-left:auto}.pagehead{align-items:flex-start;gap:10px}.pagehead h1{font-size:23px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+  <div class="logo">CHANGE TRACKER</div>
+  <nav class="nav">
+    <button data-page="dashboard" class="active">Дашборд</button>
+    <button data-page="all">Все изменения</button>
+    <button data-page="archive">Архив</button>
+  </nav>
+  <button class="add" onclick="openCreate()">＋ Добавить</button>
+</header>
+<main id="app"></main>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal" id="modalContent"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DEMO = [
+{id:'H-001',name:'Новый формат заголовков',type:'Контент',owner:'Никита',status:'В тесте',problem:'CTR материалов ниже целевого значения.',change:'Изменить структуру заголовка и сделать пользу для пользователя более очевидной.',hypothesis:'Если изменить структуру заголовка, CTR увеличится, потому что пользователь быстрее понимает ценность материала.',metric:'CTR',baseline:'1.2',target:'1.5',current:'1.4',result:'',location:'Foot.ru / Статья №123 / Заголовок',start:'2026-10-01',end:'2026-10-14',control:'2026-10-05',decision:'',next:'',questions:'',created:'2026-10-01T10:00:00',updated:'2026-10-05T10:00:00'},
+{id:'H-002',name:'SEO-блок в статье',type:'SEO',owner:'Анна',status:'На анализе',problem:'Органический трафик на статьи ниже ожидаемого.',change:'Добавить SEO-блок с дополнительными релевантными запросами.',hypothesis:'SEO-блок увеличит органический трафик и вовлечённость.',metric:'CTR',baseline:'2.1',target:'2.6',current:'2.7',result:'CTR вырос до 2,7%.',location:'Блог / Статьи',start:'2026-09-15',end:'2026-10-02',control:'2026-10-03',decision:'',next:'',questions:'Проверить статистическую значимость',created:'2026-09-15T10:00:00',updated:'2026-10-03T10:00:00'},
+{id:'H-003',name:'Новая форма отклика',type:'Дизайн / UX',owner:'Илья',status:'Внедрено',problem:'Низкая конверсия формы.',change:'Упростить форму и сократить количество видимых полей.',hypothesis:'Более короткая форма повысит CR.',metric:'CR',baseline:'52',target:'60',current:'64',result:'Конверсия выросла до 64%.',location:'Форма отклика / Mobile',start:'2026-08-01',end:'2026-08-20',control:'2026-08-20',decision:'Внедрить',next:'',questions:'',created:'2026-08-01T10:00:00',updated:'2026-08-21T10:00:00'},
+{id:'H-004',name:'Новый порядок коммуникации',type:'Процесс',owner:'Мария',status:'Не подтверждено',problem:'Долго согласуются изменения.',change:'Ввести единый порядок согласования.',hypothesis:'Единый порядок сократит срок согласований.',metric:'Дни',baseline:'7',target:'4',current:'8',result:'Средний срок вырос до 8 дней.',location:'Внутренний процесс',start:'2026-09-01',end:'2026-09-25',control:'2026-09-25',decision:'Не внедрять',next:'',questions:'',created:'2026-09-01T10:00:00',updated:'2026-09-26T10:00:00'}
+];
+// === ОБЩАЯ БАЗА ===
+// Вставьте сюда URL и anon key вашего проекта Supabase.
+// После настройки все пользователи этого HTML-файла работают с одной базой.
+const SUPABASE_URL = 'https://axqhwofslptfcbdkfryi.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_IZiXLete96cuRAPm8MzldA_Xtv7cega';
+const supabaseClient = (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY')
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+let data = [];
+let currentPage='dashboard';
+let dataReady=false;
+
+const statuses=['Идея','Запланировано','В тесте','На анализе','Внедрено','Не подтверждено','Приостановлено'];
+const types=['Контент','Дизайн / UX','Процесс','Коммуникация','SEO','Performance','Аналитика','Автоматизация','Продукт / функциональность','Другое'];
+
+async function loadData(){
+  if(!supabaseClient){
+    data = JSON.parse(localStorage.getItem('changeTrackerData') || 'null') || DEMO;
+    dataReady=true; render();
+    showToast('Локальный режим: подключите Supabase для общей базы');
+    return;
+  }
+  const {data: rows,error}=await supabaseClient.from('change_tracker').select('*').order('id');
+  if(error){
+    console.error(error); data=DEMO; dataReady=true; render();
+    showToast('Ошибка подключения к общей базе');
+    return;
+  }
+  if(!rows.length){
+    const {error:seedError}=await supabaseClient.from('change_tracker').insert(DEMO.map(normalizeForDb));
+    if(seedError) console.error(seedError);
+    data=DEMO;
+  }else{
+    data=rows.map(normalizeFromDb);
+  }
+  dataReady=true; render();
+}
+
+function normalizeForDb(x){
+  return {
+    id:x.id,name:x.name,type:x.type,owner:x.owner,status:x.status,problem:x.problem,change:x.change,
+    hypothesis:x.hypothesis,metric:x.metric,baseline:x.baseline,target:x.target,current:x.current,result:x.result,
+    location:x.location,start:x.start||null,end:x.end||null,control:x.control||null,decision:x.decision,
+    next:x.next,questions:x.questions,created:x.created||new Date().toISOString(),updated:x.updated||new Date().toISOString()
+  };
+}
+function normalizeFromDb(x){ return {...x, start:x.start||'', end:x.end||'', control:x.control||''}; }
+
+async function saveRemote(x){
+  if(!supabaseClient){
+    localStorage.setItem('changeTrackerData',JSON.stringify(data));
+    return {error:null};
+  }
+  return await supabaseClient.from('change_tracker').upsert(normalizeForDb(x),{onConflict:'id'});
+}
+function today(){return new Date().toISOString().slice(0,10)}
+function fmt(d){if(!d)return '—'; const [y,m,day]=d.split('-');return `${day}.${m}.${y}`}
+function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function cls(s){return {'Идея':'idea','Запланировано':'planned','В тесте':'test','На анализе':'analysis','Внедрено':'done','Не подтверждено':'failed','Приостановлено':'paused'}[s]||'idea'}
+function dateDiff(dateStr){if(!dateStr)return null;const [y,m,d]=dateStr.split('-').map(Number);const [ty,tm,td]=today().split('-').map(Number);return Math.round((Date.UTC(y,m-1,d)-Date.UTC(ty,tm-1,td))/86400000)}
+function controlState(x){if(!x.control)return null;const diff=dateDiff(x.control);if(diff<0)return ['Контроль просрочен','danger'];if(diff===0)return ['Контроль сегодня','danger'];if(diff<=3)return ['Скоро контроль','warning'];return ['Запланирован','ok']}
+function progress(x){if(!x.start||!x.end)return null;const a=new Date(x.start),b=new Date(x.end),n=new Date();return Math.max(0,Math.min(100,Math.round((n-a)/(b-a)*100)))}
+function deadlineState(x){if(!x.end)return null;const diff=dateDiff(x.end);if(diff<0)return ['Дедлайн просрочен','danger'];if(diff===0)return ['Дедлайн сегодня','danger'];if(diff<=3)return ['Дедлайн скоро','warning'];return ['Дедлайн запланирован','ok']}
+function statCounts(){return Object.fromEntries(statuses.map(s=>[s,data.filter(x=>x.status===s).length]))}
+function attention(){
+ const arr=[];
+ data.forEach(x=>{const cs=controlState(x);if(cs && cs[1]!=='ok' && x.status!=='Внедрено' && x.status!=='Не подтверждено' && x.status!=='Приостановлено')arr.push({x,label:cs[0],kind:cs[1]});
+ if(x.end && x.status==='В тесте'){const d=dateDiff(x.end);if(d<0)arr.push({x,label:'Тест завершён по дедлайну','kind':'danger'});else if(d<=3)arr.push({x,label:'Скоро завершится тест',kind:'warning'})}
+ if(x.status==='На анализе'&&!x.result)arr.push({x,label:'Нет фактического результата',kind:'danger'});
+ if(x.status!=='Внедрено'&&!x.baseline)arr.push({x,label:'Нет baseline',kind:'danger'});
+ });
+ return arr;
+}
+function render(){
+ if(currentPage==='dashboard')renderDashboard();
+ else if(currentPage==='all')renderAll(false);
+ else renderAll(true);
+ document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===currentPage));
+}
+function renderDashboard(){
+ const c=statCounts(),att=attention();
+ const active=data.filter(x=>['Запланировано','В тесте','На анализе'].includes(x.status));
+ document.getElementById('app').innerHTML=`
+ <div class="pagehead"><div><h1>Дашборд</h1><div class="sub">Что тестируем → что требует внимания → что уже показало результат</div></div><button class="secondary" onclick="render()">↻ Обновить</button></div>
+ <div class="kpis">
+ ${[['Всего',data.length,''],['В тесте',c['В тесте'],''],['На анализе',c['На анализе'],''],['Требуют внимания',att.length,''],['Внедрено',c['Внедрено'],''],['Не подтверждено',c['Не подтверждено'],'']].map(a=>`<div class="kpi"><span>${a[0]}</span><b>${a[1]}</b></div>`).join('')}
+ </div>
+ <div class="grid">
+  <section class="card"><h2>Требуют внимания</h2><div class="attention">${att.length?att.slice(0,8).map(o=>`<div class="attention-item"><div class="left"><strong>${esc(o.x.id)} · ${esc(o.x.name)}</strong><div class="mini">${esc(o.label)} · контроль ${fmt(o.x.control)}</div></div><button class="secondary" onclick="openDetail('${o.x.id}')">Открыть</button></div>`).join(''):'<div class="empty">Всё под контролем 🎉</div>'}</div></section>
+  <section class="card"><h2>Активные тесты</h2>${active.length?active.slice(0,6).map(x=>card(x)).join(''):'<div class="empty">Нет активных тестов</div>'}</section>
+  <section class="card"><h2>Изменения по типам</h2>${typeChart()}</section>
+  <section class="card"><h2>Успешность по типам</h2>${successTable()}</section>
+ </div>`;
+}
+function card(x){const p=progress(x),cs=controlState(x);return `<div class="attention-item" style="margin-bottom:9px"><div class="left"><strong>${esc(x.id)} · ${esc(x.name)}</strong><div class="mini" style="margin:5px 0">${esc(x.type)} · ${esc(x.metric)} ${esc(x.baseline||'—')} → ${esc(x.target||'—')}</div>${p!==null?`<div class="mini">Прогресс теста: ${p}% · ${fmt(x.end)}</div>`:''}</div><div><span class="badge ${cls(x.status)}">${esc(x.status)}</span>${cs?`<div class="mini ${cs[1]}" style="margin-top:5px">${cs[0]}</div>`:''}</div></div>`}
+function typeChart(){const counts=types.map(t=>[t,data.filter(x=>x.type===t).length]).filter(x=>x[1]);const max=Math.max(...counts.map(x=>x[1]),1);return `<div class="chartbar">${counts.map(x=>`<div class="barcol"><div class="barval">${x[1]}</div><div class="bar" style="height:${Math.max(6,x[1]/max*125)}px"></div><div class="barlabel">${esc(x[0])}</div></div>`).join('')}</div>`}
+function successTable(){const rows=types.map(t=>{const a=data.filter(x=>x.type===t),s=a.filter(x=>x.decision==='Внедрить'||x.status==='Внедрено').length;return [t,a.length,s,a.length?Math.round(s/a.length*100):0]}).filter(r=>r[1]);return `<div class="table-wrap"><table class="table"><thead><tr><th>Тип</th><th>Всего</th><th>Подтверждено</th><th>Доля</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}%</td></tr>`).join('')}</tbody></table></div>`}
+function renderAll(archive){
+ let rows=data.filter(x=>archive?['Внедрено','Не подтверждено','Приостановлено'].includes(x.status):true);
+ document.getElementById('app').innerHTML=`
+ <div class="pagehead"><div><h1>${archive?'Архив':'Все изменения'}</h1><div class="sub">${archive?'Завершённые и приостановленные тесты':'Полный список гипотез и изменений'}</div></div></div>
+ <div class="controls"><input id="q" placeholder="Поиск по ID, названию, проблеме, гипотезе..." oninput="filterTable()"><select id="sf" onchange="filterTable()"><option value="">Все статусы</option>${statuses.map(s=>`<option>${s}</option>`).join('')}</select><select id="tf" onchange="filterTable()"><option value="">Все типы</option>${types.map(s=>`<option>${s}</option>`).join('')}</select><select id="of" onchange="filterTable()"><option value="">Все ответственные</option>${[...new Set(data.map(x=>x.owner))].map(s=>`<option>${esc(s)}</option>`).join('')}</select><button class="secondary" onclick="render()">↻ Обновить</button></div>
+ <div class="card" style="padding:0"><div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Название</th><th>Тип</th><th>Статус</th><th>Метрика</th><th>Baseline</th><th>Цель</th><th>Текущее</th><th>Следующий контроль</th><th>Окончание</th><th>Ответственный</th><th>Локация</th></tr></thead><tbody id="tbody">${rows.map(rowHTML).join('')}</tbody></table></div></div>`;
+}
+function rowHTML(x){return `<tr data-id="${x.id}" data-search="${esc([x.id,x.name,x.problem,x.hypothesis,x.location,x.owner].join(' ').toLowerCase())}" data-status="${esc(x.status)}" data-type="${esc(x.type)}" data-owner="${esc(x.owner)}" onclick="openDetail('${x.id}')"><td><b>${esc(x.id)}</b></td><td>${esc(x.name)}</td><td>${esc(x.type)}</td><td><span class="badge ${cls(x.status)}">${esc(x.status)}</span></td><td>${esc(x.metric)}</td><td>${esc(x.baseline||'—')}</td><td>${esc(x.target||'—')}</td><td>${esc(x.current||'—')}</td><td>${fmt(x.control)}</td><td>${fmt(x.end)}${deadlineState(x)?` <span class="mini ${deadlineState(x)[1]}">· ${deadlineState(x)[0]}</span>`:''}</td><td>${esc(x.owner)}</td><td>${esc(x.location)}</td></tr>`}
+function filterTable(){const q=(document.getElementById('q')?.value||'').toLowerCase(),s=document.getElementById('sf')?.value||'',t=document.getElementById('tf')?.value||'',o=document.getElementById('of')?.value||'';document.querySelectorAll('#tbody tr').forEach(r=>{r.style.display=(!q||r.dataset.search.includes(q))&&(!s||r.dataset.status===s)&&(!t||r.dataset.type===t)&&(!o||r.dataset.owner===o)?'':'none'})}
+function openDetail(id){
+ const x=data.find(a=>a.id===id);if(!x)return;const p=progress(x),cs=controlState(x),ds=deadlineState(x);
+ const b=Number(x.baseline),cur=Number(x.current),tar=Number(x.target);let delta='',goal='';
+ if([b,cur,tar].every(Number.isFinite)&&b!==0){delta=((cur-b)/Math.abs(b)*100).toFixed(1);goal=(((cur-b)/(tar-b))*100).toFixed(0)}
+ document.getElementById('modalContent').innerHTML=`<div class="modal-head"><div><div class="mini">${esc(x.id)}</div><h2 style="margin:2px 0">${esc(x.name)}</h2></div><button class="close" onclick="closeModal()">×</button></div><div class="modal-body">
+ <div class="detail-head"><div><span class="badge ${cls(x.status)}">${esc(x.status)}</span>${cs?` <span class="mini ${cs[1]}">${cs[0]}</span>`:''}${ds?` <span class="mini ${ds[1]}" style="margin-left:8px">${ds[0]}</span>`:''}</div><button class="secondary" onclick="openEdit('${x.id}')">Редактировать</button></div>
+ ${section('Проблема',x.problem)}${section('Предлагаемое изменение',x.change)}${section('Гипотеза',x.hypothesis)}
+ <div class="section"><h3>Метрики</h3><div class="metrics"><div class="metric"><span class="mini">Основная метрика</span><b>${esc(x.metric)}</b></div><div class="metric"><span class="mini">Baseline</span><b>${esc(x.baseline||'—')}</b></div><div class="metric"><span class="mini">Цель</span><b>${esc(x.target||'—')}</b></div><div class="metric"><span class="mini">Текущее</span><b>${esc(x.current||'—')}</b></div></div>${delta?`<div class="mini" style="margin-top:9px">Изменение относительно baseline: <b>${delta>0?'+':''}${delta}%</b> · достижение цели: <b>${goal}%</b></div>`:''}</div>
+ <div class="section"><h3>Локация тестирования</h3><div class="textbox">${esc(x.location)}</div></div>
+ <div class="section"><div class="detail-grid">${[['Ответственный',x.owner],['Дата начала',fmt(x.start)],['Дата окончания',fmt(x.end)],['Следующий контроль',fmt(x.control)],['Дата создания',fmt(x.created?.slice(0,10))],['Последнее изменение',fmt(x.updated?.slice(0,10))]].map(a=>`<div class="info"><span>${a[0]}</span>${esc(a[1])}</div>`).join('')}</div></div>
+ ${p!==null?`<div class="section"><h3>Прогресс теста</h3><div class="mini">${p}% времени теста</div><div style="height:8px;background:#edf0f4;border-radius:99px;margin-top:7px"><div style="width:${p}%;height:100%;background:#4263eb;border-radius:99px"></div></div></div>`:''}
+ ${x.result||x.decision||x.next?`<div class="section"><h3>Результат</h3>${x.result?section('Фактический результат',x.result):''}${x.decision?`<div class="info"><span>Решение</span>${esc(x.decision)}</div>`:''}${x.next?section('Следующий шаг',x.next):''}</div>`:''}
+ ${x.questions?section('Открытые вопросы / TBA',x.questions):''}
+ <div class="actions">${['В тесте','Запланировано'].includes(x.status)?`<button class="primary" onclick="openControl('${x.id}')">✓ Провести контроль</button>`:''}<button class="secondary" onclick="openEdit('${x.id}')">Редактировать</button><button class="danger-btn" onclick="confirmDelete('${x.id}')">Удалить</button></div>
+ </div>`;
+ document.getElementById('modal').classList.add('open');
+}
+function section(title,value){return value?`<div class="section"><h3>${title}</h3><div class="textbox">${esc(value)}</div></div>`:''}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function openCreate(){openForm()}
+function openEdit(id){openForm(data.find(x=>x.id===id))}
+function openForm(x=null){
+ const isEdit=!!x; x=x||{name:'',type:'Контент',owner:'',status:'Идея',problem:'',change:'',hypothesis:'',metric:'',baseline:'',target:'',current:'',result:'',location:'',start:today(),end:'',control:'',decision:'',next:'',questions:''};
+ const fields=[['name','Название изменения',''],['type','Тип изменения','select'],['owner','Ответственный',''],['status','Статус','select'],['problem','Проблема / идея','fullarea'],['change','Предлагаемое изменение','fullarea'],['hypothesis','Гипотеза','fullarea'],['metric','Основная метрика',''],['baseline','Baseline',''],['target','Целевое значение',''],['current','Текущее значение',''],['location','Локация тестирования','full'],['start','Дата начала','date'],['end','Дата окончания','date'],['control','Дата следующего контроля','date'],['result','Фактический результат','fullarea'],['decision','Решение','selectDecision'],['next','Следующий шаг','fullarea'],['questions','Открытые вопросы / TBA','fullarea']];
+ document.getElementById('modalContent').innerHTML=`<div class="modal-head"><div><h2 style="margin:0">${isEdit?'Редактирование':'Новое изменение'}</h2></div><button class="close" onclick="closeModal()">×</button></div><div class="modal-body"><form id="recordForm" onsubmit="submitForm(event,'${isEdit?x.id:''}')"><div class="formgrid">${fields.map(([k,label,t])=>`<div class="field ${t.includes('full')?'full':''}"><label>${label}</label>${k==='status'?`<select name="${k}">${statuses.map(v=>`<option ${v===x[k]?'selected':''}>${v}</option>`).join('')}</select>`:t==='select'?`<select name="${k}">${types.map(v=>`<option ${v===x[k]?'selected':''}>${v}</option>`).join('')}</select>`:t==='selectDecision'?`<select name="${k}"><option value="">—</option>${['Внедрить','Продолжить тест','Изменить гипотезу','Повторить тест','Не внедрять','Приостановить'].map(v=>`<option ${v===x[k]?'selected':''}>${v}</option>`).join('')}</select>`:t==='fullarea'?`<textarea name="${k}">${esc(x[k])}</textarea>`:`<input type="${t==='date'?'date':'text'}" name="${k}" value="${esc(x[k])}">`}</div>`).join('')}</div><div class="form-actions"><button type="button" class="secondary" onclick="closeModal()">Отмена</button><button class="primary">${isEdit?'Сохранить изменения':'Создать'}</button></div></form></div>`;
+ document.getElementById('modal').classList.add('open');
+}
+async function submitForm(e,id){
+  e.preventDefault();
+  const fd=new FormData(e.target),obj=Object.fromEntries(fd.entries());
+  if(obj.status==='Внедрено'&&(!obj.result||!obj.decision||!obj.next)){
+    showToast('Для «Внедрено» заполните результат, решение и следующий шаг'); return;
+  }
+  const now=new Date().toISOString();
+  let record;
+  if(id){
+    const i=data.findIndex(x=>x.id===id);
+    record={...data[i],...obj,updated:now};
+    data[i]=record;
+  }else{
+    const n=data.length?Math.max(...data.map(x=>parseInt(String(x.id).slice(2))||0))+1:1;
+    record={id:`H-${String(n).padStart(3,'0')}`,...obj,created:now,updated:now};
+    data.push(record);
+  }
+  const result=await saveRemote(record);
+  if(result?.error){
+    console.error(result.error);
+    showToast('Не удалось сохранить изменение');
+    await loadData(); return;
+  }
+  closeModal(); render(); showToast('Изменение сохранено для всей команды');
+}
+function openControl(id){const x=data.find(a=>a.id===id);document.getElementById('modalContent').innerHTML=`<div class="modal-head"><h2 style="margin:0">Провести контроль · ${esc(x.id)}</h2><button class="close" onclick="closeModal()">×</button></div><div class="modal-body"><form onsubmit="saveControl(event,'${id}')"><div class="formgrid"><div class="field"><label>Дата контроля</label><input name="date" type="date" value="${today()}" required></div><div class="field"><label>Текущее значение</label><input name="current" value="${esc(x.current)}"></div><div class="field full"><label>Комментарий</label><textarea name="comment" placeholder="Что изменилось?"></textarea></div><div class="field"><label>Следующий контроль</label><input name="next" type="date" required></div></div><div class="form-actions"><button type="button" class="secondary" onclick="closeModal()">Отмена</button><button class="primary">Сохранить контроль</button></div></form></div>`}
+async function saveControl(e,id){
+  e.preventDefault();
+  const x=data.find(a=>a.id===id),o=Object.fromEntries(new FormData(e.target).entries());
+  x.current=o.current;x.control=o.next;x.updated=new Date().toISOString();x.status='В тесте';
+  const result=await saveRemote(x);
+  if(result?.error){console.error(result.error);showToast('Не удалось сохранить контроль');await loadData();return;}
+  closeModal();render();showToast('Контроль сохранён для всей команды');
+}
+
+async function confirmDelete(id){
+  const x=data.find(a=>a.id===id);
+  if(!x)return;
+  const ok=confirm(`Удалить гипотезу ${x.id} «${x.name}»?\n\nЭто действие удалит запись для всех пользователей общей базы.`);
+  if(!ok)return;
+  if(supabaseClient){
+    const {error}=await supabaseClient.from('change_tracker').delete().eq('id',id);
+    if(error){console.error(error);showToast('Не удалось удалить запись');return;}
+  }else{
+    localStorage.setItem('changeTrackerData',JSON.stringify(data.filter(a=>a.id!==id)));
+  }
+  data=data.filter(a=>a.id!==id);
+  closeModal(); render(); showToast('Гипотеза удалена для всей команды');
+}
+function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2500)}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{currentPage=b.dataset.page;render()});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+loadData();
+</script>
+</body>
+</html>
